@@ -10,6 +10,7 @@
         <StackPanel DockPanel.Dock="top">
             <Button Click="Button_Click" >Youtube</Button>
             <Button Click="Button_Click_1">Spotify</Button>
+            <Button Click="Button_Click_2">Youtube search</Button>
         </StackPanel>
         <ListView ItemsSource="{Binding Path=YoutubeDownloaders}">
             <ListView.View>

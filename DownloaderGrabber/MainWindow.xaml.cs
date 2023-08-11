@@ -1,6 +1,9 @@
 ﻿using DotNetTools.SharpGrabber;
 using DotNetTools.SharpGrabber.Converter;
 using DotNetTools.SharpGrabber.Grabbed;
+using Google.Apis.Services;
+using Google.Apis.YouTube.v3;
+using Google.Apis.YouTube.v3.Data;
 using Microsoft.Extensions.Configuration;
 using SpotifyAPI.Web;
 using System;
@@ -64,6 +67,35 @@ namespace DownloaderGrabber
                 //var fullName = item.Track.Album.Name + " " + item.Track.Name;
                 // you can use "break" here!
             }
+        }
+
+        private async void Button_Click_2(object sender, RoutedEventArgs e)
+        {
+            var youtubeService = new YouTubeService(new BaseClientService.Initializer()
+            {
+                ApiKey = configuration["GoogleKey"],
+                ApplicationName = this.GetType().ToString()
+            });
+            var searchListRequest = youtubeService.Search.List("snippet");
+            searchListRequest.Q = "official all time low - jon bellion"; // Replace with your search term.
+            searchListRequest.MaxResults = 10;
+
+            // Call the search.list method to retrieve results matching the specified query term.
+            var searchListResponse = await searchListRequest.ExecuteAsync();
+
+            List<string> videos = new List<string>();
+
+            foreach (var searchResult in searchListResponse.Items)
+            {
+                switch (searchResult.Id.Kind)
+                {
+                    case "youtube#video":
+                        videos.Add(String.Format("{0} ({1})", searchResult.Snippet.Title, searchResult.Id.VideoId));
+                        break;
+                }
+            }
+
+            var t = 1;
         }
     }
 }
