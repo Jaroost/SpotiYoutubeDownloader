@@ -1,0 +1,25 @@
+﻿<Window x:Class="DownloaderGrabber.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:DownloaderGrabber"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <DockPanel >
+        <StackPanel DockPanel.Dock="top">
+            <Button Click="Button_Click" >Youtube</Button>
+            <Button Click="Button_Click_1">Spotify</Button>
+        </StackPanel>
+        <ListView ItemsSource="{Binding Path=YoutubeDownloaders}">
+            <ListView.View>
+                <GridView AllowsColumnReorder="true">
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=Step}" Header="Step" Width="300"/>
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=InputFilename}" Header="Filename" Width="300"/>
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=PercentProgress}" Header="%" Width="100"/> 
+                </GridView>
+
+            </ListView.View>
+        </ListView>
+    </DockPanel>
+</Window>
