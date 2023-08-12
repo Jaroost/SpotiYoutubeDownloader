@@ -14,12 +14,17 @@ using System.ComponentModel;
 using System.IO.Pipes;
 using FFMpegCore;
 using FFMpegCore.Enums;
+using Google.Apis.Services;
+using Google.Apis.YouTube.v3;
+using System.Configuration;
+using Microsoft.Extensions.Configuration;
 
 namespace DownloaderGrabber
 {
     public class YoutubeDownloader: IProgress<float>, INotifyPropertyChanged
     {
         public string YoutubeUri { get; set; }
+        public string YoutubeSearch { get; set; }
         public GrabbedMedia AudioMedia { get; set; } = null;
         public GrabResult GrabResult { get; set; } = null;
         public string InputFilename { get; set; } = string.Empty;
@@ -34,14 +39,16 @@ namespace DownloaderGrabber
             }
         }
 
-        public string Step { get; set; } = "";
+        public bool IsFinished { get; set; } = false;
+
+        public string Step { get; set; } = "Waiting to start";
 
         public string DownloadFolder { get; set; } = Path.Combine(Directory.GetCurrentDirectory(), "download");
 
         public string FullInputFilename { 
             get
             {
-                return Path.Combine(DownloadFolder,"webm", InputFilename);
+                return Path.Combine(DownloadFolder,"input", InputFilename);
             } 
         }
 
@@ -49,16 +56,17 @@ namespace DownloaderGrabber
         {
             get
             {
-                return Path.Combine(DownloadFolder, "mp3", OutputFilename);
+                return Path.Combine(DownloadFolder, "output", OutputFilename);
             }
         }
 
         public CancellationTokenSource CancellationTokenSource { get; set; } = new CancellationTokenSource();
-        public YoutubeDownloader(string youtubeUri) {
-            YoutubeUri = youtubeUri;
+        private IConfigurationRoot configuration;
+        public YoutubeDownloader(string youtubeSearch, IConfigurationRoot configuration) {
+            this.configuration = configuration;
+            YoutubeSearch = youtubeSearch;
             Directory.CreateDirectory(FullInputFilename);
             Directory.CreateDirectory(FullOutputFilename);
-            Step = "Waiting to start";
             DoWork();
         }
 
@@ -66,29 +74,67 @@ namespace DownloaderGrabber
 
         public async Task DoWork()
         {
-            Step = "Grab information from Youtube";
-            await GrabInformation();
-            Step = "Download audio from Youtube";
-            await Download();
-            Step = "Convert audio to MP3";
-            await ConvertToMp3();
+            await SearchYoutubeVideo();
+            await GrabYoutubeInformation();
+            if (!File.Exists(FullOutputFilename))
+            {
+                await Download();
+                await ConvertToAAC();                
+            }
             Step = "Extraction finished";
+            Progress = 1;
+            IsFinished = true;
+        }
+
+        private async Task SearchYoutubeVideo()
+        {
+            Step = $"Searching Youtube video with ({YoutubeSearch})";
+            Progress = 0;
+            try
+            {
+                var youtubeService = new YouTubeService(new BaseClientService.Initializer()
+                {
+                    ApiKey = configuration["GoogleKey"],
+                    ApplicationName = this.GetType().ToString()
+                });
+                var searchListRequest = youtubeService.Search.List("snippet");
+                searchListRequest.Q = YoutubeSearch;
+                searchListRequest.MaxResults = 1;
+
+                // Call the search.list method to retrieve results matching the specified query term.
+                var searchListResponse = await searchListRequest.ExecuteAsync();
+
+                List<string> videos = new List<string>();
+
+                var item = searchListResponse.Items.FirstOrDefault(search => search.Id.Kind == "youtube#video");
+                if (item != null)
+                {
+                    YoutubeUri = $"https://www.youtube.com/watch?v={item.Id.VideoId}";
+                }
+            }
+            catch(Exception ex)
+            {
+                var t = 1;
+            }           
+
             Progress = 1;
         }
 
-        private async Task ConvertToMp3() 
+        private async Task ConvertToAAC() 
         {
+            Step = "Convert audio to AAC";
             Progress = 0;
             await FFMpegArguments
             .FromFileInput(FullInputFilename)
             .OutputToFile(FullOutputFilename, true, options => options
-                .WithAudioCodec(AudioCodec.LibMp3Lame))
+                .WithAudioCodec(AudioCodec.Aac))
             .ProcessAsynchronously();
             Progress = 1;
         }
 
-        private async Task GrabInformation()
+        private async Task GrabYoutubeInformation()
         {
+            Step = "Grab information from Youtube";
             Progress = 0;
             var grabber = GrabberBuilder.New()
                 .UseDefaultServices()
@@ -99,20 +145,12 @@ namespace DownloaderGrabber
             AudioMedia= mediaFiles.GetHighestQualityAudio();
             InputFilename = $"{GrabResult.Title}.{AudioMedia.Container}";
             OutputFilename = $"{GrabResult.Title}.mp3";
-            if (File.Exists(FullInputFilename))
-            {
-                File.Delete(FullInputFilename);
-            }
-
-            if (File.Exists(FullOutputFilename))
-            {
-                File.Delete(FullOutputFilename);
-            }
             Progress = 1;
         }
 
         private async Task Download()
         {
+            Step = "Download audio from Youtube";
             Progress = 0;
             using (var client = new HttpClient())
             {

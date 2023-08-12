@@ -7,17 +7,17 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <DockPanel >
-        <StackPanel DockPanel.Dock="top">
-            <Button Click="Button_Click" >Youtube</Button>
-            <Button Click="Button_Click_1">Spotify</Button>
-            <Button Click="Button_Click_2">Youtube search</Button>
-        </StackPanel>
-        <ListView ItemsSource="{Binding Path=YoutubeDownloaders}">
+        <DockPanel DockPanel.Dock="top" Margin="10">
+            <TextBlock DockPanel.Dock="Left">Spotify playlist id:</TextBlock>
+            <Button DockPanel.Dock="Right" Click="Button_Click_3" Margin="10,0,0,0">Search and extract</Button>
+            <TextBox Text="{Binding Path=SpotifyPlaylistId}" Margin="10,0,0,0"></TextBox>
+        </DockPanel>
+        <ListView ItemsSource="{Binding Path=DownloadManager.YoutubeDownloaders}">
             <ListView.View>
                 <GridView AllowsColumnReorder="true">
-                    <GridViewColumn DisplayMemberBinding="{Binding Path=Step}" Header="Step" Width="300"/>
-                    <GridViewColumn DisplayMemberBinding="{Binding Path=InputFilename}" Header="Filename" Width="300"/>
-                    <GridViewColumn DisplayMemberBinding="{Binding Path=PercentProgress}" Header="%" Width="100"/> 
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=YoutubeSearch}" Header="Filename"/>
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=Step}" Header="Step"/>
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=PercentProgress}" Header="%"/> 
                 </GridView>
 
             </ListView.View>
