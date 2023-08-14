@@ -17,7 +17,7 @@
                 <GridView AllowsColumnReorder="true">
                     <GridViewColumn DisplayMemberBinding="{Binding Path=YoutubeSearch}" Header="Filename"/>
                     <GridViewColumn DisplayMemberBinding="{Binding Path=Step}" Header="Step"/>
-                    <GridViewColumn DisplayMemberBinding="{Binding Path=PercentProgress}" Header="%"/> 
+                    <GridViewColumn DisplayMemberBinding="{Binding Path=PercentProgress}" Header="%" Width="100"/> 
                 </GridView>
 
             </ListView.View>

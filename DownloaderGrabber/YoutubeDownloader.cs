@@ -78,7 +78,10 @@ namespace DownloaderGrabber
             await GrabYoutubeInformation();
             if (!File.Exists(FullOutputFilename))
             {
-                await Download();
+                if (!File.Exists(FullInputFilename))
+                {
+                    await Download();
+                }
                 await ConvertToAAC();                
             }
             Step = "Extraction finished";
@@ -144,7 +147,7 @@ namespace DownloaderGrabber
             var mediaFiles = GrabResult.Resources<GrabbedMedia>().ToArray();
             AudioMedia= mediaFiles.GetHighestQualityAudio();
             InputFilename = $"{GrabResult.Title}.{AudioMedia.Container}";
-            OutputFilename = $"{GrabResult.Title}.mp3";
+            OutputFilename = $"{GrabResult.Title}.aac";
             Progress = 1;
         }
 

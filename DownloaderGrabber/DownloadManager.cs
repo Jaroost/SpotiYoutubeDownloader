@@ -47,7 +47,7 @@ namespace DownloaderGrabber
                 var artists = string.Join(", ", track.Artists.Select(artist => artist.Name).ToList());
                 var fullName = $"{track.Name}-{artists}";
 
-                if (counter < 1)
+                if (counter < 5)
                 {
                     YoutubeDownloaders.Add(new YoutubeDownloader(fullName, configuration));
                 }                
