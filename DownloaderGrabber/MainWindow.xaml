@@ -11,6 +11,7 @@
             <TextBlock DockPanel.Dock="Left">Spotify playlist id:</TextBlock>
             <Button DockPanel.Dock="Right" Click="Button_Click_3" Margin="10,0,0,0">Search and extract</Button>
             <TextBox Text="{Binding Path=SpotifyPlaylistId}" Margin="10,0,0,0"></TextBox>
+            <Button Click="Button_Click">Youtube</Button>
         </DockPanel>
         <ListView ItemsSource="{Binding Path=DownloadManager.YoutubeDownloaders}">
             <ListView.View>
