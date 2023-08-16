@@ -65,8 +65,9 @@ namespace DownloaderGrabber
 
             var input = driver.FindElement(By.Id("search-input"));
             input.Click();
-            new OpenQA.Selenium.Interactions.Actions(driver).SendKeys("test").Perform();
-            MessageBox.Show("fini!");
+            new OpenQA.Selenium.Interactions.Actions(driver).SendKeys("If you want to sing out sign out-Cat stevens / Yusuf").Perform();
+            var searchBtn=driver.FindElement(By.CssSelector("button[aria-label = \"Rechercher\"]"));
+            searchBtn.Click();
         }
     }
 }
