@@ -13,7 +13,7 @@
             <TextBox Text="{Binding Path=SpotifyPlaylistId}" Margin="10,0,0,0"></TextBox>
             <Button Click="Button_Click">Youtube</Button>
         </DockPanel>
-        <ListView ItemsSource="{Binding Path=DownloadManager.YoutubeDownloaders}">
+        <ListView ItemsSource="{Binding Path=DownloadManager.Tracks}">
             <ListView.View>
                 <GridView AllowsColumnReorder="true">
                     <GridViewColumn DisplayMemberBinding="{Binding Path=YoutubeSearch}" Header="Filename"/>

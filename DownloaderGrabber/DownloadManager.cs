@@ -14,6 +14,8 @@ using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium;
 using System.Threading;
 using Google.Apis.YouTube.v3.Data;
+using System.Windows.Threading;
+using System.Windows;
 
 namespace DownloaderGrabber
 {
@@ -36,9 +38,8 @@ namespace DownloaderGrabber
             } 
         }
 
-        public List<TrackInfo> Tracks { get; set; }
+        public ObservableCollection<Track> Tracks { get; set; }
 
-        public ObservableCollection<YoutubeDownloader> YoutubeDownloaders { get; set; } = new ObservableCollection<YoutubeDownloader>();
         public string Step { get; set; } = "Waiting to start";
 
         private IConfigurationRoot configuration;
@@ -51,68 +52,81 @@ namespace DownloaderGrabber
 
         public async Task DoWork()
         {
-            await GetAllSpotifyInformation();
+            await Deserialize();
             await GetAllYoutubeUrls();
         }
 
-        private async Task GetAllYoutubeUrls()
+        private Task GetAllYoutubeUrls()
         {
-            IWebDriver driver = new FirefoxDriver();
-            driver.Url = "https://www.youtube.com/?hl=FR";
-            driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(100);
-            var consentForm = driver.FindElement(By.CssSelector("[aria-label = \"Accepter l'utilisation de cookies et d'autres données aux fins décrites\"]"));
-            consentForm?.Click();
-
-
-            foreach (var track in Tracks)
+            return Task.Run(() =>
             {
+                IWebDriver driver = new FirefoxDriver();
+                driver.Url = "https://www.youtube.com/?hl=FR";
+                driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(100);
+                var consentForm = driver.FindElement(By.CssSelector("[aria-label = \"Accepter l'utilisation de cookies et d'autres données aux fins décrites\"]"));
+                consentForm?.Click();
 
-                if (string.IsNullOrEmpty(track.YoutubeUrl))
+
+                foreach (var track in Tracks)
                 {
-                    driver.Url = "https://www.youtube.com/?hl=FR";
-                    var searchInput = driver.FindElement(By.Id("search-input"));
-                    searchInput.Click();
-                    new OpenQA.Selenium.Interactions.Actions(driver).SendKeys(track.YoutubeSearch).Perform();
-                    var searchButton = driver.FindElement(By.CssSelector("button[aria-label = \"Rechercher\"]"));
-                    searchButton.Click();
-                    Thread.Sleep(3000);
-                    driver.FindElement(By.CssSelector("ytd-video-renderer")).Click();
-                    track.YoutubeUrl = driver.Url;
-                    Serialize();
+
+                    if (string.IsNullOrEmpty(track.YoutubeUrl))
+                    {
+                        driver.Url = "https://www.youtube.com/?hl=FR";
+                        var searchInput = driver.FindElement(By.Id("search-input"));
+                        searchInput.Click();
+                        new OpenQA.Selenium.Interactions.Actions(driver).SendKeys(track.YoutubeSearch).Perform();
+                        var searchButton = driver.FindElement(By.CssSelector("button[aria-label = \"Rechercher\"]"));
+                        searchButton.Click();
+                        Thread.Sleep(3000);
+                        driver.FindElement(By.CssSelector("ytd-video-renderer")).Click();
+                        track.YoutubeUrl = driver.Url;
+                        Serialize();
+                    }
+                   
                 }
-            }
+            });
         }
 
-        public async Task GetAllSpotifyInformation()
+        public async Task Deserialize()
         {
             if (File.Exists(SpotifyPlaylistJsonFile))
             {
-                var traks=JsonSerializer.Deserialize<List<TrackInfo>>(File.ReadAllText(SpotifyPlaylistJsonFile));
-                if(traks != null)
+                try
                 {
+                    var traks = JsonSerializer.Deserialize<ObservableCollection<Track>>(File.ReadAllText(SpotifyPlaylistJsonFile));
                     Tracks = traks;
+                }
+                catch (Exception e)
+                {
+                    await SpotifyInformations();
                 }
             }
             else
             {
-                var config = SpotifyClientConfig.CreateDefault().WithAuthenticator(
+                await SpotifyInformations();
+            }
+           
+        }
+
+        private async Task SpotifyInformations()
+        {
+            var config = SpotifyClientConfig.CreateDefault().WithAuthenticator(
                     new ClientCredentialsAuthenticator(configuration["SpotifyClientId"], configuration["SpotifySecret"]));
 
 
-                var spotify = new SpotifyClient(config);
-                var paging = await spotify.Playlists.GetItems(SpotifyPlaylistId);
-                var allTraks = await spotify.PaginateAll(paging);
+            var spotify = new SpotifyClient(config);
+            var paging = await spotify.Playlists.GetItems(SpotifyPlaylistId);
+            var allTraks = await spotify.PaginateAll(paging);
 
-                Tracks = new List<TrackInfo>();
-                foreach (var item in allTraks)
-                {
-                    var track = (FullTrack)item.Track;
+            Tracks = new ObservableCollection<Track>();
+            foreach (var item in allTraks)
+            {
+                var track = (FullTrack)item.Track;
 
-                    Tracks.Add(new TrackInfo(track.Name, track.Artists.Select(artist => artist.Name).ToList()));
-                }
-                Serialize();
+                Tracks.Add(new Track(track.Name, track.Artists.Select(artist => artist.Name).ToList(), configuration));
             }
-           
+            Serialize();
         }
 
         private void Serialize()

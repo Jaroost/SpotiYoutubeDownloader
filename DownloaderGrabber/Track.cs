@@ -18,40 +18,57 @@ using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using System.Configuration;
 using Microsoft.Extensions.Configuration;
+using System.Text.Json.Serialization;
 
 namespace DownloaderGrabber
 {
-    public class YoutubeDownloader: IProgress<float>, INotifyPropertyChanged
+    public class Track: IProgress<float>, INotifyPropertyChanged
     {
-        public string YoutubeUri { get; set; }
-        public string YoutubeSearch { get; set; }
+    
+        public string Name { get; set; }
+        public List<string> Artists { get; set; } = new List<string>();
+
+        public string YoutubeUrl { get; set; } = null;
+
+        [JsonIgnore]
+        public string YoutubeSearch
+        {
+            get
+            {
+                return $"{Name} - {string.Join('/', Artists)}";
+            }
+        }
+        [JsonIgnore]
         public GrabbedMedia AudioMedia { get; set; } = null;
+        [JsonIgnore]
         public GrabResult GrabResult { get; set; } = null;
+
+        [JsonIgnore]
         public string InputFilename { get; set; } = string.Empty;
+        [JsonIgnore]
         public string OutputFilename { get; set; } = string.Empty;
-
+        [JsonIgnore]
         public float Progress { get; set; }
-
+        [JsonIgnore]
         public int PercentProgress { 
             get
             {
                 return (int)(Progress * 100);
             }
         }
-
+        [JsonIgnore]
         public bool IsFinished { get; set; } = false;
-
         public string Step { get; set; } = "Waiting to start";
-
+        [JsonIgnore]
         public string DownloadFolder { get; set; } = Path.Combine(Directory.GetCurrentDirectory(), "download");
-
+        [JsonIgnore]
         public string FullInputFilename { 
             get
             {
                 return Path.Combine(DownloadFolder,"input", InputFilename);
             } 
         }
-
+        [JsonIgnore]
         public string FullOutputFilename
         {
             get
@@ -59,22 +76,28 @@ namespace DownloaderGrabber
                 return Path.Combine(DownloadFolder, "output", OutputFilename);
             }
         }
-
+        [JsonIgnore]
         public CancellationTokenSource CancellationTokenSource { get; set; } = new CancellationTokenSource();
         private IConfigurationRoot configuration;
-        public YoutubeDownloader(string youtubeSearch, IConfigurationRoot configuration) {
+        public Track(string name, List<string> artists, IConfigurationRoot configuration) {
+            Name = name;
+            Artists = artists;
             this.configuration = configuration;
-            YoutubeSearch = youtubeSearch;
             Directory.CreateDirectory(FullInputFilename);
             Directory.CreateDirectory(FullOutputFilename);
-            DoWork();
+            //DoWork();
+        }
+
+        public Track()
+        {
+            void
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
         public async Task DoWork()
         {
-            await SearchYoutubeVideo();
+            //await SearchYoutubeVideo();
             await GrabYoutubeInformation();
             if (!File.Exists(FullOutputFilename))
             {
@@ -89,39 +112,39 @@ namespace DownloaderGrabber
             IsFinished = true;
         }
 
-        private async Task SearchYoutubeVideo()
-        {
-            Step = $"Searching Youtube video with ({YoutubeSearch})";
-            Progress = 0;
-            try
-            {
-                var youtubeService = new YouTubeService(new BaseClientService.Initializer()
-                {
-                    ApiKey = configuration["GoogleKey"],
-                    ApplicationName = this.GetType().ToString()
-                });
-                var searchListRequest = youtubeService.Search.List("snippet");
-                searchListRequest.Q = YoutubeSearch;
-                searchListRequest.MaxResults = 1;
+        //private async Task SearchYoutubeVideo()
+        //{
+        //    Step = $"Searching Youtube video with ({YoutubeSearch})";
+        //    Progress = 0;
+        //    try
+        //    {
+        //        var youtubeService = new YouTubeService(new BaseClientService.Initializer()
+        //        {
+        //            ApiKey = configuration["GoogleKey"],
+        //            ApplicationName = this.GetType().ToString()
+        //        });
+        //        var searchListRequest = youtubeService.Search.List("snippet");
+        //        searchListRequest.Q = YoutubeSearch;
+        //        searchListRequest.MaxResults = 1;
 
-                // Call the search.list method to retrieve results matching the specified query term.
-                var searchListResponse = await searchListRequest.ExecuteAsync();
+        //        // Call the search.list method to retrieve results matching the specified query term.
+        //        var searchListResponse = await searchListRequest.ExecuteAsync();
 
-                List<string> videos = new List<string>();
+        //        List<string> videos = new List<string>();
 
-                var item = searchListResponse.Items.FirstOrDefault(search => search.Id.Kind == "youtube#video");
-                if (item != null)
-                {
-                    YoutubeUri = $"https://www.youtube.com/watch?v={item.Id.VideoId}";
-                }
-            }
-            catch(Exception ex)
-            {
-                var t = 1;
-            }           
+        //        var item = searchListResponse.Items.FirstOrDefault(search => search.Id.Kind == "youtube#video");
+        //        if (item != null)
+        //        {
+        //            YoutubeUri = $"https://www.youtube.com/watch?v={item.Id.VideoId}";
+        //        }
+        //    }
+        //    catch(Exception ex)
+        //    {
+        //        var t = 1;
+        //    }           
 
-            Progress = 1;
-        }
+        //    Progress = 1;
+        //}
 
         private async Task ConvertToAAC() 
         {
@@ -143,7 +166,7 @@ namespace DownloaderGrabber
                 .UseDefaultServices()
                 .AddYouTube()
                 .Build();
-            GrabResult = await grabber.GrabAsync(new Uri(YoutubeUri));
+            GrabResult = await grabber.GrabAsync(new Uri(YoutubeUrl));
             var mediaFiles = GrabResult.Resources<GrabbedMedia>().ToArray();
             AudioMedia= mediaFiles.GetHighestQualityAudio();
             InputFilename = $"{GrabResult.Title}.{AudioMedia.Container}";
