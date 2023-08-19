@@ -24,6 +24,8 @@ namespace DownloaderGrabber
 {
     public class DownloadManager : INotifyPropertyChanged, IDisposable
     {
+
+        public Object conversionLock { get; set; }= new Object();
         public bool IsRunning { get; set; } = true;
         public bool WorkInProgress { get; set; }
 
@@ -52,7 +54,28 @@ namespace DownloaderGrabber
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        
+        public string ProgressionString
+        {
+            get
+            {
+                return $"{Progression} %";
+            }
+        }
+
+        public int Progression
+        {
+            get
+            {
+                if(Tracks != null && Tracks.Count>0)
+                {
+                    return Tracks.Where(t => t.IsFinished).ToList().Count * 100 / Tracks.Count;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+        }
 
         public DownloadManager(string spotifyPlaylistId, IConfigurationRoot configuration, int concurentThreads, int concurrentSeleniums)
         {
@@ -76,10 +99,10 @@ namespace DownloaderGrabber
         {
             return Task.Run(() =>
             {
-                Step = $"Creating {ConcurrentSeleniums} seleniums";
+                
                 for (var i = 0; i < ConcurrentSeleniums; i++)
                 {
-
+                    Step = $"Creating {ConcurrentSeleniums-(i+1)} seleniums";
                     var service = ChromeDriverService.CreateDefaultService(); 
                     service.HideCommandPromptWindow = true;
                     allServices.Add(service);
@@ -137,12 +160,12 @@ namespace DownloaderGrabber
         private async Task DownloadTracks()
         {
             Step = "Downloading tracks";
-            List<Func<Task>> taskFactories = new List<Func<Task>>();
-            foreach(var track in Tracks)
+            var allTasks= new List<Func<Task>>();
+            foreach (var track in Tracks)
             {
-                taskFactories.Add(()=>track.DoWork(this));
+                allTasks.Add(()=>track.DoWork(this));
             }
-            await InvokeAsync(taskFactories, maxDegreeOfParallelism: ConcurentThreads);
+            await InvokeAsync(allTasks, maxDegreeOfParallelism: ConcurentThreads);
 
 
 
@@ -210,7 +233,7 @@ namespace DownloaderGrabber
             {
                 var track = (FullTrack)item.Track;
 
-                Tracks.Add(new Track(track.Name, track.Artists.Select(artist => artist.Name).ToList(), configuration));
+                Tracks.Add(new Track(track.Name, track.Artists.Select(artist => artist.Name).ToList(), configuration, this));
             }
             Serialize();
         }

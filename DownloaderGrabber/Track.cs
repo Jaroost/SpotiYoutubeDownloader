@@ -45,10 +45,48 @@ namespace DownloaderGrabber
         [JsonIgnore]
         public GrabResult GrabResult { get; set; } = null;
 
+        private string inputFilename=string.Empty;
         [JsonIgnore]
-        public string InputFilename { get; set; } = string.Empty;
+        public string InputFilename
+        {
+            get
+            {
+                return inputFilename;
+            }
+            set
+            {
+                inputFilename = value.Replace("/", "_")
+                    .Replace("\\", "_")
+                    .Replace("*", "_")
+                    .Replace(":", "_")
+                    .Replace("\"", "_")
+                    .Replace("<", "_")
+                    .Replace(">", "_")
+                    .Replace("|", "_");
+            }
+        }
+
+        private string outputFilename = string.Empty;
         [JsonIgnore]
-        public string OutputFilename { get; set; } = string.Empty;
+        public string OutputFilename
+        {
+            get
+            {
+                return outputFilename;
+            }
+            set
+            {
+                outputFilename = value.Replace("/", "_")
+                    .Replace("\\", "_")
+                    .Replace("*", "_")
+                    .Replace(":", "_")
+                    .Replace("\"", "_")
+                    .Replace("<", "_")
+                    .Replace(">", "_")
+                    .Replace("|", "_");
+            }
+        }
+
         [JsonIgnore]
         public float Progress { get; set; }
         [JsonIgnore]
@@ -60,6 +98,7 @@ namespace DownloaderGrabber
         }
         [JsonIgnore]
         public bool IsFinished { get; set; } = false;
+        [JsonIgnore]
         public string Step { get; set; } = "Waiting to start";
         [JsonIgnore]
         public string DownloadFolder { get; set; } = Path.Combine(Directory.GetCurrentDirectory(), "download");
@@ -81,10 +120,13 @@ namespace DownloaderGrabber
         [JsonIgnore]
         public CancellationTokenSource CancellationTokenSource { get; set; } = new CancellationTokenSource();
         private IConfigurationRoot configuration;
-        public Track(string name, List<string> artists, IConfigurationRoot configuration) {
+        private readonly DownloadManager downloadManager;
+
+        public Track(string name, List<string> artists, IConfigurationRoot configuration, DownloadManager downloadManager) {
             Name = name;
             Artists = artists;
             this.configuration = configuration;
+            this.downloadManager = downloadManager;
             Directory.CreateDirectory(FullInputFilename);
             Directory.CreateDirectory(FullOutputFilename);
             //DoWork();
@@ -93,6 +135,8 @@ namespace DownloaderGrabber
         public Track()
         {
             Step = "Waiting to start";
+            Directory.CreateDirectory(FullInputFilename);
+            Directory.CreateDirectory(FullOutputFilename);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -110,6 +154,7 @@ namespace DownloaderGrabber
                         {
                             var driver = downloadManager.FreeDrivers.Dequeue();
                             SearchYoutubeUrl(driver);
+                            driver.Url = "https://www.youtube.com/?hl=FR";
                             downloadManager.FreeDrivers.Enqueue(driver);
                             break;
                         }
@@ -200,12 +245,16 @@ namespace DownloaderGrabber
         {
             Step = "Convert audio to AAC";
             Progress = 0;
-            await FFMpegArguments
-            .FromFileInput(FullInputFilename)
-            .OutputToFile(FullOutputFilename, true, options => options
-                .WithAudioCodec(AudioCodec.Aac))
-            .ProcessAsynchronously();
-            Progress = 1;
+            lock (downloadManager)
+            {
+                FFMpegArguments
+                    .FromFileInput(FullInputFilename)
+                    .OutputToFile(FullOutputFilename, true, options => options
+                        .WithAudioCodec(AudioCodec.Aac))
+                    .ProcessSynchronously();
+                Progress = 1;
+            }
+            
         }
 
         private async Task GrabYoutubeInformation()

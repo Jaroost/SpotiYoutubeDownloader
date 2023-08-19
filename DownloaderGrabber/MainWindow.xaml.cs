@@ -39,7 +39,7 @@ namespace DownloaderGrabber
     {
         public DownloadManager DownloadManager { get; set; } = null;
         public IConfigurationRoot configuration;
-        public int ConcurentThreads { get; set; } = 5;
+        public int ConcurentThreads { get; set; } = 7;
         public int ConcurrentSeleniums { get; set; } = 4;
         public string SpotifyPlaylistId { get; set; } = "4A64AfkCrZ0B8orJ6kpWPH";
         public MainWindow()
