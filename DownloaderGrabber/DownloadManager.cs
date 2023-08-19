@@ -26,6 +26,7 @@ namespace DownloaderGrabber
     {
 
         public Object conversionLock { get; set; }= new Object();
+        public Object serializeLock { get; set; } = new object();
         public bool IsRunning { get; set; } = true;
         public bool WorkInProgress { get; set; }
 
@@ -107,7 +108,7 @@ namespace DownloaderGrabber
                     service.HideCommandPromptWindow = true;
                     allServices.Add(service);
                     var options = new ChromeOptions();
-                    options.AddArguments("--headless=new");
+                    //options.AddArguments("--headless=new");
                     var driver = new ChromeDriver(service, options);
                     driver.Url = "https://www.youtube.com/?hl=FR";
                     driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(100);
@@ -204,6 +205,10 @@ namespace DownloaderGrabber
                 try
                 {
                     var traks = JsonSerializer.Deserialize<ObservableCollection<Track>>(File.ReadAllText(SpotifyPlaylistJsonFile));
+                    foreach(var trak in traks)
+                    {
+                        trak.DownloadManager = this;
+                    }                    
                     Tracks = traks;
                 }
                 catch (Exception e)
@@ -235,13 +240,15 @@ namespace DownloaderGrabber
 
                 Tracks.Add(new Track(track.Name, track.Artists.Select(artist => artist.Name).ToList(), configuration, this));
             }
-            Serialize();
         }
 
-        private void Serialize()
+        public void Serialize()
         {
-            string json = JsonSerializer.Serialize(Tracks, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(SpotifyPlaylistJsonFile, json);
+            lock (serializeLock)
+            {
+                string json = JsonSerializer.Serialize(Tracks, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(SpotifyPlaylistJsonFile, json);
+            }            
         }
 
         public void Dispose()

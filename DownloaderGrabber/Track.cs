@@ -120,13 +120,14 @@ namespace DownloaderGrabber
         [JsonIgnore]
         public CancellationTokenSource CancellationTokenSource { get; set; } = new CancellationTokenSource();
         private IConfigurationRoot configuration;
-        private readonly DownloadManager downloadManager;
+        [JsonIgnore]
+        public  DownloadManager DownloadManager { get; set; }
 
         public Track(string name, List<string> artists, IConfigurationRoot configuration, DownloadManager downloadManager) {
             Name = name;
             Artists = artists;
             this.configuration = configuration;
-            this.downloadManager = downloadManager;
+            DownloadManager = downloadManager;
             Directory.CreateDirectory(FullInputFilename);
             Directory.CreateDirectory(FullOutputFilename);
             //DoWork();
@@ -153,12 +154,17 @@ namespace DownloaderGrabber
                         if (downloadManager.FreeDrivers.Count > 0)
                         {
                             var driver = downloadManager.FreeDrivers.Dequeue();
-                            SearchYoutubeUrl(driver);
-                            driver.Url = "https://www.youtube.com/?hl=FR";
-                            downloadManager.FreeDrivers.Enqueue(driver);
-                            break;
+                            if (driver != null)
+                            {
+                                await SearchYoutubeUrl(driver);
+                                driver.Url = "https://www.youtube.com/?hl=FR";
+                                downloadManager.FreeDrivers.Enqueue(driver);
+                                downloadManager.Serialize();
+                                break;
+                            }
+                            
                         }
-                        await Task.Delay(100);
+                        await Task.Delay(1000);
                     }
 
                 }
@@ -184,27 +190,31 @@ namespace DownloaderGrabber
             
         }
 
-        private void SearchYoutubeUrl(IWebDriver driver)
+        private Task SearchYoutubeUrl(IWebDriver driver)
         {
-            Step = "Searching youtube video";
-            Progress = 0;
-            driver.Url = "https://www.youtube.com/?hl=FR";
-            var searchInput = driver.FindElement(By.Id("search-input"));
-            Progress = (float).10;
-            searchInput.Click();
-            Progress = (float).20;
-            new OpenQA.Selenium.Interactions.Actions(driver).SendKeys(YoutubeSearch).Perform();
-            Progress = (float).50;
-            var searchButton = driver.FindElement(By.CssSelector("button[aria-label = \"Rechercher\"]"));
-            Progress = (float).60;
-            searchButton.Click();
-            Progress = (float).70;
-            Thread.Sleep(3000);
-            Progress = (float).80;
-            driver.FindElement(By.CssSelector("ytd-video-renderer")).Click();
-            Progress = (float).90;
-            YoutubeUrl = driver.Url;
-            Progress = 1;
+            return Task.Run(() =>
+            {
+                Step = "Searching youtube video";
+                Progress = 0;
+                driver.Url = "https://www.youtube.com/?hl=FR";
+                var searchInput = driver.FindElement(By.Id("search-input"));
+                Progress = (float).10;
+                searchInput.Click();
+                Progress = (float).20;
+                new OpenQA.Selenium.Interactions.Actions(driver).SendKeys(YoutubeSearch).Perform();
+                Progress = (float).50;
+                var searchButton = driver.FindElement(By.CssSelector("button[aria-label = \"Rechercher\"]"));
+                Progress = (float).60;
+                searchButton.Click();
+                Progress = (float).70;
+                Thread.Sleep(3000);
+                Progress = (float).80;
+                driver.FindElement(By.CssSelector("ytd-video-renderer")).Click();
+                Progress = (float).90;
+                YoutubeUrl = driver.Url;
+                Progress = 1;
+            });
+            
         }
 
         //private async Task SearchYoutubeVideo()
@@ -245,7 +255,7 @@ namespace DownloaderGrabber
         {
             Step = "Convert audio to AAC";
             Progress = 0;
-            lock (downloadManager)
+            lock (DownloadManager.conversionLock)
             {
                 FFMpegArguments
                     .FromFileInput(FullInputFilename)
