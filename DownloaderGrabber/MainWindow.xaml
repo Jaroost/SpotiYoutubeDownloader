@@ -5,14 +5,23 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DownloaderGrabber"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="450" Width="800" Closing="Window_Closing">
     <DockPanel >
-        <DockPanel DockPanel.Dock="top" Margin="10">
-            <TextBlock DockPanel.Dock="Left">Spotify playlist id:</TextBlock>
-            <Button DockPanel.Dock="Right" Click="Button_Click_3" Margin="10,0,0,0">Search and extract</Button>
-            <TextBox Text="{Binding Path=SpotifyPlaylistId}" Margin="10,0,0,0"></TextBox>
-            <Button Click="Button_Click">Youtube</Button>
-        </DockPanel>
+        <StackPanel Orientation="Vertical" DockPanel.Dock="top">
+            <DockPanel  Margin="10">
+                <TextBlock DockPanel.Dock="Left">Spotify playlist id:</TextBlock>
+                <Button DockPanel.Dock="Right" Click="Button_Click_3" Margin="10,0,0,0">Search and extract</Button>
+                <TextBox Text="{Binding Path=SpotifyPlaylistId}" Margin="10,0,0,0"></TextBox>
+            </DockPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Margin="10,0,0,0">Concurrent seleniums: </TextBlock>
+                <TextBox Margin="10,0,0,0" Text="{Binding Path=ConcurrentSeleniums}" Width="200"></TextBox>
+                <TextBlock Margin="10,0,0,0">Concurrent Threads:</TextBlock>
+                <TextBox Margin="10,0,0,0" Text="{Binding Path=ConcurentThreads}" Width="200"></TextBox>
+            </StackPanel>
+            <TextBlock Text="{Binding Path=DownloadManager.Step}" Margin="10,0,0,0"></TextBlock>
+        </StackPanel>       
+        
         <ListView ItemsSource="{Binding Path=DownloadManager.Tracks}">
             <ListView.View>
                 <GridView AllowsColumnReorder="true">

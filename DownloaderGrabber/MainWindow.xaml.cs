@@ -39,6 +39,8 @@ namespace DownloaderGrabber
     {
         public DownloadManager DownloadManager { get; set; } = null;
         public IConfigurationRoot configuration;
+        public int ConcurentThreads { get; set; } = 5;
+        public int ConcurrentSeleniums { get; set; } = 4;
         public string SpotifyPlaylistId { get; set; } = "4A64AfkCrZ0B8orJ6kpWPH";
         public MainWindow()
         {
@@ -51,23 +53,13 @@ namespace DownloaderGrabber
 
         private async void Button_Click_3(object sender, RoutedEventArgs e)
         {
-            DownloadManager = new DownloadManager(SpotifyPlaylistId, configuration);
+            DownloadManager = new DownloadManager(SpotifyPlaylistId, configuration, ConcurentThreads, ConcurrentSeleniums);
             await DownloadManager.DoWork();
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private void Window_Closing(object sender, CancelEventArgs e)
         {
-            IWebDriver driver = new FirefoxDriver();
-            driver.Url = "https://www.youtube.com/?hl=FR";
-            driver.Manage().Timeouts().ImplicitWait=TimeSpan.FromSeconds(100);
-            var element=driver.FindElement(By.CssSelector("[aria-label = \"Accepter l'utilisation de cookies et d'autres données aux fins décrites\"]"));
-            element.Click();
-
-            var input = driver.FindElement(By.Id("search-input"));
-            input.Click();
-            new OpenQA.Selenium.Interactions.Actions(driver).SendKeys("If you want to sing out sign out-Cat stevens / Yusuf").Perform();
-            var searchBtn=driver.FindElement(By.CssSelector("button[aria-label = \"Rechercher\"]"));
-            searchBtn.Click();
+            DownloadManager?.Dispose();
         }
     }
 }

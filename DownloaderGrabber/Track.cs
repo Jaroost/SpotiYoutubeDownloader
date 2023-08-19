@@ -19,6 +19,8 @@ using Google.Apis.YouTube.v3;
 using System.Configuration;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json.Serialization;
+using OpenQA.Selenium;
+using System.Windows.Controls.Primitives;
 
 namespace DownloaderGrabber
 {
@@ -90,26 +92,74 @@ namespace DownloaderGrabber
 
         public Track()
         {
-            void
+            Step = "Waiting to start";
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public async Task DoWork()
+        public async Task DoWork(DownloadManager downloadManager)
         {
-            //await SearchYoutubeVideo();
-            await GrabYoutubeInformation();
-            if (!File.Exists(FullOutputFilename))
+            try
             {
-                if (!File.Exists(FullInputFilename))
+                if (string.IsNullOrEmpty(YoutubeUrl))
                 {
-                    await Download();
+                    while (true)
+                    {
+                        Step = "Getting free selenium for video searching";
+                        if (downloadManager.FreeDrivers.Count > 0)
+                        {
+                            var driver = downloadManager.FreeDrivers.Dequeue();
+                            SearchYoutubeUrl(driver);
+                            downloadManager.FreeDrivers.Enqueue(driver);
+                            break;
+                        }
+                        await Task.Delay(100);
+                    }
+
                 }
-                await ConvertToAAC();                
+                await GrabYoutubeInformation();
+                if (!File.Exists(FullOutputFilename))
+                {
+                    if (File.Exists(FullInputFilename))
+                    {
+                        File.Delete(FullInputFilename);
+                    }
+                    await Download();
+                    await ConvertToAAC();
+                }
+                Step = "Extraction finished";
+                Progress = 1;
+                IsFinished = true;
             }
-            Step = "Extraction finished";
+            catch(Exception ex)
+            {
+                Step = $"Error: {ex}";
+                Progress = 1;
+            }
+            
+        }
+
+        private void SearchYoutubeUrl(IWebDriver driver)
+        {
+            Step = "Searching youtube video";
+            Progress = 0;
+            driver.Url = "https://www.youtube.com/?hl=FR";
+            var searchInput = driver.FindElement(By.Id("search-input"));
+            Progress = (float).10;
+            searchInput.Click();
+            Progress = (float).20;
+            new OpenQA.Selenium.Interactions.Actions(driver).SendKeys(YoutubeSearch).Perform();
+            Progress = (float).50;
+            var searchButton = driver.FindElement(By.CssSelector("button[aria-label = \"Rechercher\"]"));
+            Progress = (float).60;
+            searchButton.Click();
+            Progress = (float).70;
+            Thread.Sleep(3000);
+            Progress = (float).80;
+            driver.FindElement(By.CssSelector("ytd-video-renderer")).Click();
+            Progress = (float).90;
+            YoutubeUrl = driver.Url;
             Progress = 1;
-            IsFinished = true;
         }
 
         //private async Task SearchYoutubeVideo()
