@@ -25,8 +25,9 @@ namespace DownloaderGrabber
     public class DownloadManager : INotifyPropertyChanged, IDisposable
     {
 
-        public Object conversionLock { get; set; }= new Object();
-        public Object serializeLock { get; set; } = new object();
+        public SemaphoreSlim conversionSemaphore { get; set; }= new SemaphoreSlim(1,1);
+        public Object serializeLock { get; set; } = new Object();
+        public Object seleniumLock { get; set; } = new object();
         public bool IsRunning { get; set; } = true;
         public bool WorkInProgress { get; set; }
 
@@ -158,6 +159,28 @@ namespace DownloaderGrabber
             while (queue.Count != 0 || tasksInFlight.Count != 0);
         }
 
+        public IWebDriver? GetFreeSelenium()
+        {
+            IWebDriver driver = null;
+            lock (seleniumLock)
+            {
+                if (FreeDrivers.Count > 0)
+                {
+                    driver = FreeDrivers.Dequeue();
+                }
+            }
+            return driver;
+        }
+
+        public bool ReleaseSelenium(IWebDriver driver)
+        {
+            lock(seleniumLock)
+            {
+                FreeDrivers.Enqueue(driver);
+                return true;
+            }
+        } 
+
         private async Task DownloadTracks()
         {
             Step = "Downloading tracks";
@@ -204,12 +227,12 @@ namespace DownloaderGrabber
             {
                 try
                 {
-                    var traks = JsonSerializer.Deserialize<ObservableCollection<Track>>(File.ReadAllText(SpotifyPlaylistJsonFile));
-                    foreach(var trak in traks)
+                    var tracks = JsonSerializer.Deserialize<ObservableCollection<Track>>(File.ReadAllText(SpotifyPlaylistJsonFile));
+                    foreach(var trak in tracks)
                     {
                         trak.DownloadManager = this;
                     }                    
-                    Tracks = traks;
+                    Tracks = tracks;
                 }
                 catch (Exception e)
                 {
@@ -222,6 +245,8 @@ namespace DownloaderGrabber
             }
            
         }
+
+
 
         private async Task SpotifyInformations()
         {

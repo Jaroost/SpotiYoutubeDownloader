@@ -123,6 +123,14 @@ namespace DownloaderGrabber
         [JsonIgnore]
         public  DownloadManager DownloadManager { get; set; }
 
+        public bool IsValidYoutubeUrl
+        {
+            get
+            {
+                return !string.IsNullOrEmpty(YoutubeUrl) && YoutubeUrl.Contains("watch");
+            }
+        }
+
         public Track(string name, List<string> artists, IConfigurationRoot configuration, DownloadManager downloadManager) {
             Name = name;
             Artists = artists;
@@ -146,25 +154,21 @@ namespace DownloaderGrabber
         {
             try
             {
-                if (string.IsNullOrEmpty(YoutubeUrl))
+                if (!IsValidYoutubeUrl)
                 {
                     while (true)
                     {
                         Step = "Getting free selenium for video searching";
-                        if (downloadManager.FreeDrivers.Count > 0)
+                        var driver = downloadManager.GetFreeSelenium();
+                        if (driver != null)
                         {
-                            var driver = downloadManager.FreeDrivers.Dequeue();
-                            if (driver != null)
-                            {
-                                await SearchYoutubeUrl(driver);
-                                driver.Url = "https://www.youtube.com/?hl=FR";
-                                downloadManager.FreeDrivers.Enqueue(driver);
-                                downloadManager.Serialize();
-                                break;
-                            }
-                            
+                            await SearchYoutubeUrl(driver);
+                            driver.Url = "https://www.youtube.com/?hl=FR";
+                            downloadManager.ReleaseSelenium(driver);
+                            downloadManager.Serialize();
+                            break;
                         }
-                        await Task.Delay(1000);
+                        await Task.Delay(1000);                        
                     }
 
                 }
@@ -255,14 +259,18 @@ namespace DownloaderGrabber
         {
             Step = "Convert audio to AAC";
             Progress = 0;
-            lock (DownloadManager.conversionLock)
+            await DownloadManager.conversionSemaphore.WaitAsync();
+            try
             {
-                FFMpegArguments
+                await FFMpegArguments
                     .FromFileInput(FullInputFilename)
                     .OutputToFile(FullOutputFilename, true, options => options
                         .WithAudioCodec(AudioCodec.Aac))
-                    .ProcessSynchronously();
-                Progress = 1;
+                    .ProcessAsynchronously();
+            }
+            finally
+            {
+                DownloadManager.conversionSemaphore.Release();
             }
             
         }
