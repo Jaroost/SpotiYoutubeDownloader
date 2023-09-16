@@ -44,16 +44,21 @@ namespace DownloaderGrabber
         public string SpotifyPlaylistId { get; set; } = "2lAZHJWKQoQBt7Uts3b57l";
         public MainWindow()
         {
-            if(!File.Exists(System.IO.Path.Combine(Directory.GetCurrentDirectory(), "ffmpeg.exe")))
-            {
-                MessageBox.Show("To convert audio to AAC this software use ffmpeg.exe please download it and place it in the same directory as this application (https://www.gyan.dev/ffmpeg/builds/)\nApplication will close");
-                Environment.Exit(-1);
-            }
+            CheckDependencies();
             DataContext = this;
             InitializeComponent();
             configuration = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", true)
                 .Build();
+        }
+
+        private void CheckDependencies() 
+        {
+            if (!File.Exists(System.IO.Path.Combine(Directory.GetCurrentDirectory(), "ffmpeg.exe")))
+            {
+                MessageBox.Show("To convert audio to AAC this software use ffmpeg.exe please download it and place it in the same directory as this application (https://www.gyan.dev/ffmpeg/builds/)\nApplication will close");
+                Environment.Exit(-1);
+            }
         }
 
         private async void Button_Click_3(object sender, RoutedEventArgs e)
