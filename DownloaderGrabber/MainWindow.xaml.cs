@@ -39,11 +39,16 @@ namespace DownloaderGrabber
     {
         public DownloadManager DownloadManager { get; set; } = null;
         public IConfigurationRoot configuration;
-        public int ConcurentThreads { get; set; } = 5;
+        public int ConcurentThreads { get; set; } = 1;
         public int ConcurrentSeleniums { get; set; } = 1;
         public string SpotifyPlaylistId { get; set; } = "2lAZHJWKQoQBt7Uts3b57l";
         public MainWindow()
         {
+            if(!File.Exists(System.IO.Path.Combine(Directory.GetCurrentDirectory(), "ffmpeg.exe")))
+            {
+                MessageBox.Show("To convert audio to AAC this software use ffmpeg.exe please download it and place it in the same directory as this application (https://www.gyan.dev/ffmpeg/builds/)\nApplication will close");
+                Environment.Exit(-1);
+            }
             DataContext = this;
             InitializeComponent();
             configuration = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
