@@ -224,40 +224,6 @@ namespace DownloaderGrabber
             
         }
 
-        //private async Task SearchYoutubeVideo()
-        //{
-        //    Step = $"Searching Youtube video with ({YoutubeSearch})";
-        //    Progress = 0;
-        //    try
-        //    {
-        //        var youtubeService = new YouTubeService(new BaseClientService.Initializer()
-        //        {
-        //            ApiKey = configuration["GoogleKey"],
-        //            ApplicationName = this.GetType().ToString()
-        //        });
-        //        var searchListRequest = youtubeService.Search.List("snippet");
-        //        searchListRequest.Q = YoutubeSearch;
-        //        searchListRequest.MaxResults = 1;
-
-        //        // Call the search.list method to retrieve results matching the specified query term.
-        //        var searchListResponse = await searchListRequest.ExecuteAsync();
-
-        //        List<string> videos = new List<string>();
-
-        //        var item = searchListResponse.Items.FirstOrDefault(search => search.Id.Kind == "youtube#video");
-        //        if (item != null)
-        //        {
-        //            YoutubeUri = $"https://www.youtube.com/watch?v={item.Id.VideoId}";
-        //        }
-        //    }
-        //    catch(Exception ex)
-        //    {
-        //        var t = 1;
-        //    }           
-
-        //    Progress = 1;
-        //}
-
         private async Task ConvertToAAC() 
         {
             Step = "Convert audio to AAC";
@@ -289,8 +255,9 @@ namespace DownloaderGrabber
             GrabResult = await grabber.GrabAsync(new Uri(YoutubeUrl));
             var mediaFiles = GrabResult.Resources<GrabbedMedia>().ToArray();
             AudioMedia= mediaFiles.GetHighestQualityAudio();
-            InputFilename = $"{GrabResult.Title}.{AudioMedia.Container}";
-            OutputFilename = $"{GrabResult.Title}.aac";
+
+            InputFilename = $"{YoutubeSearch}.{AudioMedia.Container}";
+            OutputFilename = $"{YoutubeSearch}.aac";
             Progress = 1;
         }
 
