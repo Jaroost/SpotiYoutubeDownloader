@@ -19,6 +19,7 @@ using System.Windows;
 using System.ComponentModel;
 using OpenQA.Selenium.Chrome;
 using System.Xaml;
+using System.Windows.Automation;
 
 namespace DownloaderGrabber
 {
@@ -32,6 +33,8 @@ namespace DownloaderGrabber
         public bool WorkInProgress { get; set; }
 
         public string SpotifyPlaylistId { get; set; }
+
+        public bool IsSeleniumHeadless { get; set; }
 
         public string PlaylistsDirectory
         {
@@ -56,6 +59,12 @@ namespace DownloaderGrabber
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
+        public void ReportTracksProgress()
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Progression)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ProgressionString)));
+        }
+
         public string ProgressionString
         {
             get
@@ -79,10 +88,11 @@ namespace DownloaderGrabber
             }
         }
 
-        public DownloadManager(string spotifyPlaylistId, IConfigurationRoot configuration, int concurentThreads, int concurrentSeleniums)
+        public DownloadManager(string spotifyPlaylistId, IConfigurationRoot configuration, int concurentThreads, int concurrentSeleniums, bool isSeleniumHeadless = false)
         {
             SpotifyPlaylistId = spotifyPlaylistId;
-            ConcurentThreads= concurentThreads;
+            IsSeleniumHeadless = isSeleniumHeadless;
+            ConcurentThreads = concurentThreads;
             ConcurrentSeleniums = concurrentSeleniums;
             Directory.CreateDirectory(PlaylistsDirectory);
             this.configuration = configuration;
@@ -92,6 +102,7 @@ namespace DownloaderGrabber
         {
             WorkInProgress = true;
             await Deserialize();
+            RemoveDuplicates();
             await CreateConcurrentDrivers();
             await DownloadTracks();
             WorkInProgress = false;
@@ -105,12 +116,16 @@ namespace DownloaderGrabber
                 for (var i = 0; i < ConcurrentSeleniums; i++)
                 {
                     Step = $"Creating {ConcurrentSeleniums-(i+1)} seleniums";
-                    var service = ChromeDriverService.CreateDefaultService(); 
-                    service.HideCommandPromptWindow = true;
-                    allServices.Add(service);
-                    var options = new ChromeOptions();
-                    //options.AddArguments("--headless=new");
-                    var driver = new ChromeDriver(service, options);
+                    IWebDriver driver;
+                    try
+                    {
+                        driver = CreateChromeDriver(IsSeleniumHeadless);                        
+                    }
+                    catch(Exception ex)
+                    {
+                        driver = CreateFirefoxDriver(IsSeleniumHeadless);
+                    }
+
                     driver.Url = "https://www.youtube.com/?hl=FR";
                     driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(100);
                     var consentForm = driver.FindElement(By.CssSelector("[aria-label = \"Accepter l'utilisation de cookies et d'autres données aux fins décrites\"]"));
@@ -121,10 +136,37 @@ namespace DownloaderGrabber
             });
         }
 
+        private IWebDriver CreateChromeDriver(bool headless = false)
+        {
+            var service = ChromeDriverService.CreateDefaultService();
+            service.HideCommandPromptWindow = true;
+            allServices.Add(service);
+            var options = new ChromeOptions();
+            if (headless)
+            {
+                options.AddArguments("--headless=new");
+            }
+            var driver = new ChromeDriver(service, options);
+            return driver;
+        }
+
+        private IWebDriver CreateFirefoxDriver(bool headless = false)
+        {
+            var service = FirefoxDriverService.CreateDefaultService();
+            service.HideCommandPromptWindow = true;
+            allServices.Add(service);
+            var options = new FirefoxOptions();
+            if (headless)
+            {
+                options.AddArguments("--headless");
+            }
+            var driver = new FirefoxDriver(service, options);
+            return driver;
+        }
 
         public Queue<IWebDriver> FreeDrivers { get; set; } =new Queue<IWebDriver>();
         public List<IWebDriver> AllDrivers { get; set; } = new List<IWebDriver>();
-        private List<ChromeDriverService> allServices = new List<ChromeDriverService>();
+        private List<DriverService> allServices = new List<DriverService>();
         public int ConcurentThreads { get; set; } = 5;
         public int ConcurrentSeleniums { get; set; } = 4;
 
@@ -190,34 +232,6 @@ namespace DownloaderGrabber
                 allTasks.Add(()=>track.DoWork(this));
             }
             await InvokeAsync(allTasks, maxDegreeOfParallelism: ConcurentThreads);
-
-
-
-            //return Task.Run(() =>
-            //{
-            //    Step = "Getting youtube url from  track informations";
-
-
-
-            //    for(var i=0;i<Tracks.Count; i++)
-            //    {
-            //        var track = Tracks[i];
-            //        if (IsRunning)
-            //        {
-            //            Step = $"Getting youtube url from  track informations ({i + 1} / {Tracks.Count}, {(i + 1) * 100 / Tracks.Count}%)";
-            //            if (string.IsNullOrEmpty(track.YoutubeUrl))
-            //            {
-            //                try
-            //                {
-            //                    track.SearchYoutubeUrl(driver);
-            //                    Serialize();
-            //                }
-            //                catch { }
-
-            //            }
-            //        }
-            //    }
-            //});
         }
 
         public async Task Deserialize()
@@ -242,8 +256,7 @@ namespace DownloaderGrabber
             else
             {
                 await SpotifyInformations();
-            }
-           
+            }           
         }
 
 
@@ -265,6 +278,12 @@ namespace DownloaderGrabber
 
                 Tracks.Add(new Track(track.Name, track.Artists.Select(artist => artist.Name).ToList(), configuration, this));
             }
+        }
+
+        public void RemoveDuplicates()
+        {
+            var list=Tracks.GroupBy(t => $"{t.Name}-{string.Join(',', t.Artists)}").Select(group => group.First()).ToList();
+            Tracks = new ObservableCollection<Track>(list);
         }
 
         public void Serialize()

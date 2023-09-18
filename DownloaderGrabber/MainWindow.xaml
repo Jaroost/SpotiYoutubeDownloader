@@ -18,11 +18,14 @@
                 <TextBox Margin="10,0,0,0" Text="{Binding Path=ConcurrentSeleniums}" Width="200"></TextBox>
                 <TextBlock Margin="10,0,0,0">Concurrent Threads:</TextBlock>
                 <TextBox Margin="10,0,0,0" Text="{Binding Path=ConcurentThreads}" Width="200"></TextBox>
+                <TextBlock Margin="10,0,0,0">Headless?</TextBlock>
+                <CheckBox Margin="10,2,0,0" IsChecked="{Binding Path=WantHeadless}"></CheckBox>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="{Binding Path=DownloadManager.Step}" Margin="10,0,0,0"></TextBlock>
                 <TextBlock Text="{Binding Path=DownloadManager.ProgressionString}" Margin="10,0,0,0"></TextBlock>
-            </StackPanel>         
+            </StackPanel> 
+            
 
         </StackPanel>       
         

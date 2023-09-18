@@ -139,7 +139,6 @@ namespace DownloaderGrabber
             DownloadManager = downloadManager;
             Directory.CreateDirectory(FullInputFilename);
             Directory.CreateDirectory(FullOutputFilename);
-            //DoWork();
         }
 
         public Track()
@@ -174,18 +173,19 @@ namespace DownloaderGrabber
 
                 }
                 await GrabYoutubeInformation();
-                if (!File.Exists(FullOutputFilename))
-                {
-                    if (File.Exists(FullInputFilename))
-                    {
-                        File.Delete(FullInputFilename);
-                    }
-                    await Download();
-                    await ConvertToAAC();
-                }
+                //if (!File.Exists(FullOutputFilename))
+                //{
+                //    if (File.Exists(FullInputFilename))
+                //    {
+                //        File.Delete(FullInputFilename);
+                //    }
+                //    await Download();
+                //    await ConvertToAAC();
+                //}
                 Step = "Extraction finished";
                 Progress = 1;
                 IsFinished = true;
+                DownloadManager.ReportTracksProgress();
             }
             catch(Exception ex)
             {

@@ -41,7 +41,9 @@ namespace DownloaderGrabber
         public IConfigurationRoot configuration;
         public int ConcurentThreads { get; set; } = 1;
         public int ConcurrentSeleniums { get; set; } = 1;
-        public string SpotifyPlaylistId { get; set; } = "2lAZHJWKQoQBt7Uts3b57l";
+        public bool WantHeadless { get; set; } = false;
+        public string SpotifyPlaylistId { get; set; } = "1dnM7WcHkCeWjNCmzbHtLJ";
+
         public MainWindow()
         {
             CheckDependencies();
@@ -63,7 +65,7 @@ namespace DownloaderGrabber
 
         private async void Button_Click_3(object sender, RoutedEventArgs e)
         {
-            DownloadManager = new DownloadManager(SpotifyPlaylistId, configuration, ConcurentThreads, ConcurrentSeleniums);
+            DownloadManager = new DownloadManager(SpotifyPlaylistId, configuration, ConcurentThreads, ConcurrentSeleniums, WantHeadless);
             await DownloadManager.DoWork();
         }
 
