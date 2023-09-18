@@ -21,6 +21,7 @@ using Microsoft.Extensions.Configuration;
 using System.Text.Json.Serialization;
 using OpenQA.Selenium;
 using System.Windows.Controls.Primitives;
+using OpenQA.Selenium.Support.UI;
 
 namespace DownloaderGrabber
 {
@@ -213,7 +214,9 @@ namespace DownloaderGrabber
                 Progress = (float).70;
                 Thread.Sleep(3000);
                 Progress = (float).80;
-                driver.FindElement(By.CssSelector("ytd-video-renderer")).Click();
+                var wait = new WebDriverWait(driver, new TimeSpan(0, 0, 10));
+                var element=wait.Until(SeleniumExtras.WaitHelpers.ExpectedConditions.ElementToBeClickable(By.CssSelector("ytd-video-renderer ytd-thumbnail a")));
+                element.Click();
                 Progress = (float).90;
                 YoutubeUrl = driver.Url;
                 Progress = 1;
