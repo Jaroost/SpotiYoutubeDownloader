@@ -30,7 +30,7 @@ namespace DownloaderGrabber
         public Object serializeLock { get; set; } = new Object();
         public Object seleniumLock { get; set; } = new object();
         public bool IsRunning { get; set; } = true;
-        public bool WorkInProgress { get; set; }
+        public bool IsFinished { get; set; } = true;
 
         public string SpotifyPlaylistId { get; set; }
 
@@ -100,12 +100,15 @@ namespace DownloaderGrabber
 
         public async Task DoWork()
         {
-            WorkInProgress = true;
+            IsFinished = false;
             await Deserialize();
             RemoveDuplicates();
-            await CreateConcurrentDrivers();
-            await DownloadTracks();
-            WorkInProgress = false;
+            if(Tracks.Count > 0)
+            {
+                await CreateConcurrentDrivers();
+                await DownloadTracks();
+            }
+            IsFinished = true;
         }
 
         private Task CreateConcurrentDrivers()
@@ -263,27 +266,34 @@ namespace DownloaderGrabber
 
         private async Task SpotifyInformations()
         {
-            var config = SpotifyClientConfig.CreateDefault().WithAuthenticator(
+            try
+            {
+                var config = SpotifyClientConfig.CreateDefault().WithAuthenticator(
                     new ClientCredentialsAuthenticator(configuration["SpotifyClientId"], configuration["SpotifySecret"]));
 
 
-            var spotify = new SpotifyClient(config);
-            var paging = await spotify.Playlists.GetItems(SpotifyPlaylistId);
-            var allTraks = await spotify.PaginateAll(paging);
+                var spotify = new SpotifyClient(config);
+                var paging = await spotify.Playlists.GetItems(SpotifyPlaylistId);
+                var allTraks = await spotify.PaginateAll(paging);
 
-            Tracks = new ObservableCollection<Track>();
-            foreach (var item in allTraks)
+                Tracks = new ObservableCollection<Track>();
+                foreach (var item in allTraks)
+                {
+                    var track = (FullTrack)item.Track;
+
+                    Tracks.Add(new Track(track.Name, track.Artists.Select(artist => artist.Name).ToList(), configuration, this));
+                }
+            }catch(Exception e)
             {
-                var track = (FullTrack)item.Track;
-
-                Tracks.Add(new Track(track.Name, track.Artists.Select(artist => artist.Name).ToList(), configuration, this));
-            }
+                MessageBox.Show("The spotify playlist id seems to be invalid!");
+                Tracks = new ObservableCollection<Track>();
+            }            
         }
 
         public void RemoveDuplicates()
         {
-            var list=Tracks.GroupBy(t => $"{t.Name}-{string.Join(',', t.Artists)}").Select(group => group.First()).ToList();
-            Tracks = new ObservableCollection<Track>(list);
+            var list = Tracks.GroupBy(t => $"{t.Name}-{string.Join(',', t.Artists)}").Select(group => group.First()).ToList();
+            Tracks = new ObservableCollection<Track>(list); 
         }
 
         public void Serialize()

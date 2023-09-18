@@ -10,16 +10,16 @@
         <StackPanel Orientation="Vertical" DockPanel.Dock="top">
             <DockPanel  Margin="10">
                 <TextBlock DockPanel.Dock="Left">Spotify playlist id:</TextBlock>
-                <Button DockPanel.Dock="Right" Click="Button_Click_3" Margin="10,0,0,0" IsEnabled="{Binding }">Search and extract</Button>
-                <TextBox Text="{Binding Path=SpotifyPlaylistId}" Margin="10,0,0,0"></TextBox>
+                <Button DockPanel.Dock="Right" Click="Button_Click_3" Margin="10,0,0,0" IsEnabled="{Binding DownloadManager.IsFinished}">Search and extract</Button>
+                <TextBox Text="{Binding Path=SpotifyPlaylistId}" Margin="10,0,0,0" x:Name="spotifyPlaylistField" IsEnabled="{Binding DownloadManager.IsFinished}"></TextBox>
             </DockPanel>
             <StackPanel Orientation="Horizontal">
                 <TextBlock Margin="10,0,0,0">Concurrent seleniums:</TextBlock>
-                <TextBox Margin="10,0,0,0" Text="{Binding Path=ConcurrentSeleniums}" Width="200"></TextBox>
+                <TextBox Margin="10,0,0,0" Text="{Binding Path=ConcurrentSeleniums}" Width="200" IsEnabled="{Binding DownloadManager.IsFinished}"></TextBox>
                 <TextBlock Margin="10,0,0,0">Concurrent Threads:</TextBlock>
-                <TextBox Margin="10,0,0,0" Text="{Binding Path=ConcurentThreads}" Width="200"></TextBox>
+                <TextBox Margin="10,0,0,0" Text="{Binding Path=ConcurentThreads}" Width="200" IsEnabled="{Binding DownloadManager.IsFinished}"></TextBox>
                 <TextBlock Margin="10,0,0,0">Headless?</TextBlock>
-                <CheckBox Margin="10,2,0,0" IsChecked="{Binding Path=WantHeadless}"></CheckBox>
+                <CheckBox Margin="10,2,0,0" IsChecked="{Binding Path=WantHeadless}" IsEnabled="{Binding DownloadManager.IsFinished}"></CheckBox>
             </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="{Binding Path=DownloadManager.Step}" Margin="10,0,0,0"></TextBlock>
