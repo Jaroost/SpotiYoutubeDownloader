@@ -51,7 +51,7 @@ namespace DownloaderGrabber
             } 
         }
 
-        public ObservableCollection<Track> Tracks { get; set; }
+        public ObservableCollection<Track> Tracks { get; set; } = new ObservableCollection<Track>();
 
         public string Step { get; set; } = "Waiting to start";
 
@@ -244,12 +244,21 @@ namespace DownloaderGrabber
             {
                 try
                 {
+                    await SpotifyInformations();
                     var tracks = JsonSerializer.Deserialize<ObservableCollection<Track>>(File.ReadAllText(SpotifyPlaylistJsonFile));
                     foreach(var trak in tracks)
                     {
                         trak.DownloadManager = this;
-                    }                    
-                    Tracks = tracks;
+                        var alreadyTrack = Tracks.FirstOrDefault(t => t.YoutubeSearch == trak.YoutubeSearch);
+                        if(alreadyTrack != null)
+                        {
+                            Tracks.Remove(alreadyTrack);
+                        }
+                        Tracks.Add(trak);
+                    }
+                    
+                    //Tracks = tracks;
+
                 }
                 catch (Exception e)
                 {

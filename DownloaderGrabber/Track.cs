@@ -58,6 +58,7 @@ namespace DownloaderGrabber
             {
                 inputFilename = value.Replace("/", "_")
                     .Replace("\\", "_")
+                    .Replace("?", "_")
                     .Replace("*", "_")
                     .Replace(":", "_")
                     .Replace("\"", "_")
@@ -79,6 +80,7 @@ namespace DownloaderGrabber
             {
                 outputFilename = value.Replace("/", "_")
                     .Replace("\\", "_")
+                    .Replace("?", "_")
                     .Replace("*", "_")
                     .Replace(":", "_")
                     .Replace("\"", "_")
@@ -154,37 +156,43 @@ namespace DownloaderGrabber
         {
             try
             {
-                if (!IsValidYoutubeUrl)
-                {
-                    while (true)
-                    {
-                        Step = "Getting free selenium for video searching";
-                        var driver = downloadManager.GetFreeSelenium();
-                        if (driver != null)
-                        {
-                            await SearchYoutubeUrl(driver);
-                            driver.Url = "https://www.youtube.com/?hl=FR";
-                            downloadManager.ReleaseSelenium(driver);
-                            downloadManager.Serialize();
-                            break;
-                        }
-                        await Task.Delay(1000);                        
-                    }
-
-                }
-                await GrabYoutubeInformation();
+                OutputFilename = $"{YoutubeSearch}.aac";
                 if (!File.Exists(FullOutputFilename))
                 {
-                    if (File.Exists(FullInputFilename))
+                    if (!IsValidYoutubeUrl)
                     {
-                        File.Delete(FullInputFilename);
+                        while (true)
+                        {
+                            Step = "Getting free selenium for video searching";
+                            var driver = downloadManager.GetFreeSelenium();
+                            if (driver != null)
+                            {
+                                await SearchYoutubeUrl(driver);
+                                driver.Url = "https://www.youtube.com/?hl=FR";
+                                downloadManager.ReleaseSelenium(driver);
+                                downloadManager.Serialize();
+                                break;
+                            }
+                            await Task.Delay(1000);
+                        }
+
                     }
-                    await Download();
-                    await ConvertToAAC();
+                    await GrabYoutubeInformation();
+                    if (!File.Exists(FullOutputFilename))
+                    {
+                        if (File.Exists(FullInputFilename))
+                        {
+                            File.Delete(FullInputFilename);
+                        }
+                        await Download();
+                        await ConvertToAAC();
+                    }
                 }
+                
                 Step = "Extraction finished";
                 Progress = 1;
                 IsFinished = true;
+                DownloadManager.Serialize();
                 DownloadManager.ReportTracksProgress();
             }
             catch(Exception ex)
@@ -257,7 +265,6 @@ namespace DownloaderGrabber
             AudioMedia= mediaFiles.GetHighestQualityAudio();
 
             InputFilename = $"{YoutubeSearch}.{AudioMedia.Container}";
-            OutputFilename = $"{YoutubeSearch}.aac";
             Progress = 1;
         }
 
